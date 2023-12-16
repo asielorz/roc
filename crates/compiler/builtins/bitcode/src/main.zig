@@ -63,6 +63,7 @@ comptime {
     exportListFn(list.listMap2, "map2");
     exportListFn(list.listMap3, "map3");
     exportListFn(list.listMap4, "map4");
+    exportListFn(list.listParallelMap, "parallel_map");
     exportListFn(list.listAppendUnsafe, "append_unsafe");
     exportListFn(list.listReserve, "reserve");
     exportListFn(list.listPrepend, "prepend");

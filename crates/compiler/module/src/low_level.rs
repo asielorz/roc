@@ -46,6 +46,7 @@ pub enum LowLevel {
     ListMap2,
     ListMap3,
     ListMap4,
+    ListParallelMap,
     ListSortWith,
     ListSublist,
     ListDropAt,
@@ -138,7 +139,7 @@ pub enum LowLevel {
 
 macro_rules! higher_order {
     () => {
-        ListMap | ListMap2 | ListMap3 | ListMap4 | ListSortWith
+        ListMap | ListMap2 | ListMap3 | ListMap4 | ListParallelMap | ListSortWith
     };
 }
 
@@ -159,6 +160,7 @@ impl LowLevel {
             ListMap2 => 2,
             ListMap3 => 3,
             ListMap4 => 4,
+            ListParallelMap => 1,
             ListSortWith => 1,
             _ => unreachable!(),
         }
@@ -218,6 +220,7 @@ macro_rules! map_symbol_to_lowlevel {
                 LowLevel::ListMap2 => unreachable!(),
                 LowLevel::ListMap3 => unreachable!(),
                 LowLevel::ListMap4 => unreachable!(),
+                LowLevel::ListParallelMap => unreachable!(),
                 LowLevel::ListSortWith => unreachable!(),
 
                 // (un)boxing is handled in a custom way

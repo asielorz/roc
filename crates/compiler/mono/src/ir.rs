@@ -5837,6 +5837,11 @@ pub fn with_hole<'a>(
 
                     match_on_closure_argument!(ListMap4, [xs, ys, zs, ws])
                 }
+                ListParallelMap => {
+                    debug_assert_eq!(arg_symbols.len(), 2);
+                    let xs = arg_symbols[0];
+                    match_on_closure_argument!(ListParallelMap, [xs])
+                }
                 BoxExpr => {
                     debug_assert_eq!(arg_symbols.len(), 1);
                     let x = arg_symbols[0];

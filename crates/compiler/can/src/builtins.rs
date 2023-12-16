@@ -151,6 +151,7 @@ map_symbol_to_lowlevel_and_arity! {
     ListMap2; LIST_MAP2; 3,
     ListMap3; LIST_MAP3; 4,
     ListMap4; LIST_MAP4; 5,
+    ListParallelMap; LIST_PARALLEL_MAP; 2,
     ListSortWith; LIST_SORT_WITH; 2,
     ListSublist; LIST_SUBLIST_LOWLEVEL; 3,
     ListDropAt; LIST_DROP_AT; 2,

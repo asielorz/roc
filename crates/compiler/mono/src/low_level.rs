@@ -20,6 +20,9 @@ pub enum HigherOrder {
         zs: Symbol,
         ws: Symbol,
     },
+    ListParallelMap {
+        xs: Symbol,
+    },
     ListSortWith {
         xs: Symbol,
     },
@@ -32,6 +35,7 @@ impl HigherOrder {
             HigherOrder::ListMap2 { .. } => 2,
             HigherOrder::ListMap3 { .. } => 3,
             HigherOrder::ListMap4 { .. } => 4,
+            HigherOrder::ListParallelMap { .. } => 1,
             HigherOrder::ListSortWith { .. } => 2,
         }
     }
@@ -42,7 +46,7 @@ impl HigherOrder {
         use HigherOrder::*;
 
         match self {
-            ListMap { .. } | ListSortWith { .. } => 2,
+            ListMap { .. } | ListSortWith { .. } | ListParallelMap { .. } => 2,
             ListMap2 { .. } => 3,
             ListMap3 { .. } => 4,
             ListMap4 { .. } => 5,

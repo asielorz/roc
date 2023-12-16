@@ -662,6 +662,30 @@ pub(crate) fn list_map4<'a, 'ctx>(
     )
 }
 
+pub(crate) fn list_parallel_map<'a, 'ctx>(
+    env: &Env<'a, 'ctx, '_>,
+    layout_interner: &STLayoutInterner<'a>,
+    roc_function_call: RocFunctionCall<'ctx>,
+    list: BasicValueEnum<'ctx>,
+    element_layout: InLayout<'a>,
+    return_layout: InLayout<'a>,
+) -> BasicValueEnum<'ctx> {
+    call_list_bitcode_fn_1(
+        env,
+        list.into_struct_value(),
+        &[
+            roc_function_call.caller.into(),
+            pass_as_opaque(env, roc_function_call.data),
+            roc_function_call.inc_n_data.into(),
+            roc_function_call.data_is_owned.into(),
+            env.alignment_intvalue(layout_interner, return_layout),
+            layout_width(env, layout_interner, element_layout),
+            layout_width(env, layout_interner, return_layout),
+        ],
+        bitcode::LIST_PARALLEL_MAP,
+    )
+}
+
 /// List.concat : List elem, List elem -> List elem
 pub(crate) fn list_concat<'a, 'ctx>(
     env: &Env<'a, 'ctx, '_>,

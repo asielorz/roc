@@ -1,5 +1,6 @@
 const std = @import("std");
 const utils = @import("utils.zig");
+const parallel = @import("parallel.zig");
 const UpdateMode = utils.UpdateMode;
 const mem = std.mem;
 const math = std.math;
@@ -287,6 +288,59 @@ pub fn listMap(
         while (i < size) : (i += 1) {
             caller(data, source_ptr + (i * old_element_width), target_ptr + (i * new_element_width));
         }
+
+        return output;
+    } else {
+        return RocList.empty();
+    }
+}
+
+const Params = struct {
+    function_pointer: Caller1,
+    function_object: ?[*]u8,
+    element: ?[*]u8,
+    output: ?[*]u8,
+};
+
+fn runTask(type_erased_params: *anyopaque) callconv(.C) void {
+    const params: *const Params = @alignCast(@ptrCast(type_erased_params));
+    params.function_pointer(params.function_object, params.element, params.output);
+}
+
+pub fn listParallelMap(
+    list: RocList,
+    caller: Caller1,
+    data: Opaque,
+    inc_n_data: IncN,
+    data_is_owned: bool,
+    alignment: u32,
+    old_element_width: usize,
+    new_element_width: usize,
+) callconv(.C) RocList {
+    if (list.bytes) |source_ptr| {
+        const size = list.len();
+        var i: usize = 0;
+        const output = RocList.allocate(alignment, size, new_element_width);
+        const target_ptr = output.bytes orelse unreachable;
+
+        if (data_is_owned) {
+            inc_n_data(data, size);
+        }
+
+        var allocator = std.heap.GeneralPurposeAllocator(.{}){};
+        var params = std.ArrayList(Params).init(allocator.allocator());
+        defer params.deinit();
+        params.resize(size) catch unreachable;
+
+        var context = parallel.roc_parallel_context_create(size);
+
+        while (i < size) : (i += 1) {
+            params.items[i] = Params{ .function_pointer = caller, .function_object = data, .element = source_ptr + (i * old_element_width), .output = target_ptr + (i * new_element_width) };
+            parallel.roc_parallel_context_register_task(context, runTask, &params.items[i]);
+        }
+
+        parallel.roc_parallel_context_run(context);
+        parallel.roc_parallel_context_destroy(context);
 
         return output;
     } else {

@@ -2154,7 +2154,8 @@ impl<
             HigherOrder::ListMap { .. }
             | HigherOrder::ListMap2 { .. }
             | HigherOrder::ListMap3 { .. }
-            | HigherOrder::ListMap4 { .. } => CallerProc::new_list_map(
+            | HigherOrder::ListMap4 { .. }
+            | HigherOrder::ListParallelMap { .. } => CallerProc::new_list_map(
                 self.env.arena,
                 self.env.module_id,
                 ident_ids,
@@ -2594,6 +2595,78 @@ impl<
 
                 self.build_fn_call_stack_return(
                     bitcode::LIST_MAP4.to_string(),
+                    &arguments,
+                    &layouts,
+                    ret_layout,
+                    *dst,
+                );
+
+                self.free_symbol(&Symbol::DEV_TMP);
+                self.free_symbol(&Symbol::DEV_TMP2);
+            }
+            HigherOrder::ListParallelMap { xs } => {
+                let old_element_layout = argument_layouts[0];
+                let new_element_layout = higher_order.passed_function.return_layout;
+
+                let input_list_layout = LayoutRepr::Builtin(Builtin::List(old_element_layout));
+                let input_list_in_layout = self
+                    .layout_interner
+                    .insert_direct_no_semantic(input_list_layout);
+
+                let alignment = self.debug_symbol("alignment");
+                let old_element_width = self.debug_symbol("old_element_width");
+                let new_element_width = self.debug_symbol("new_element_width");
+
+                self.load_layout_alignment(new_element_layout, alignment);
+
+                self.load_layout_stack_size(old_element_layout, old_element_width);
+                self.load_layout_stack_size(new_element_layout, new_element_width);
+
+                self.build_fn_pointer(&caller, caller_string);
+
+                // we pass a null pointer when the data is not owned. the zig code must not call this!
+                let data_is_owned = higher_order.closure_env_layout.is_some()
+                    && higher_order.passed_function.owns_captured_environment;
+
+                self.load_literal(
+                    &Symbol::DEV_TMP2,
+                    &Layout::BOOL,
+                    &Literal::Bool(data_is_owned),
+                );
+
+                //    list: RocList,
+                //    caller: Caller1,
+                //    data: Opaque,
+                //    inc_n_data: IncN,
+                //    data_is_owned: bool,
+                //    alignment: u32,
+                //    old_element_width: usize,
+                //    new_element_width: usize,
+
+                let arguments = [
+                    xs,
+                    caller,
+                    data,
+                    inc_n_data,
+                    Symbol::DEV_TMP2,
+                    alignment,
+                    old_element_width,
+                    new_element_width,
+                ];
+
+                let layouts = [
+                    input_list_in_layout,
+                    ptr,
+                    ptr,
+                    ptr,
+                    Layout::BOOL,
+                    Layout::U32,
+                    usize_,
+                    usize_,
+                ];
+
+                self.build_fn_call_stack_return(
+                    bitcode::LIST_MAP.to_string(),
                     &arguments,
                     &layouts,
                     ret_layout,

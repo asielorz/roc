@@ -10,6 +10,7 @@ interface List
         prepend,
         prependIfOk,
         map,
+        parallelMap,
         len,
         withCapacity,
         walkBackwards,
@@ -724,6 +725,21 @@ keepErrs = \list, toResult ->
 ## expect List.map ["", "a", "bc"] Str.isEmpty == [Bool.true, Bool.false, Bool.false]
 ## ```
 map : List a, (a -> b) -> List b
+
+## Convert each element in the list to something new, by calling a conversion
+## function on each of them. Then return a new list of the converted values.
+## This function is semantically equivalent to List.map, however the transformation
+## for each element may be called in a different thread in parallel, speeding up
+## the computation. The exact way in which computation is parallelized is up to
+## the platform. In any case, all parallel computation will be joined before
+## List.parallelMap returns, making the function always safe to call and
+## deterministic in its results.
+## ```
+## expect List.parallelMap [1, 2, 3] (\num -> num + 1) == [2, 3, 4]
+##
+## expect List.parallelMap ["", "a", "bc"] Str.isEmpty == [Bool.true, Bool.false, Bool.false]
+## ```
+parallelMap : List a, (a -> b) -> List b
 
 ## Run a transformation function on the first element of each list,
 ## and use that as the first element in the returned list.

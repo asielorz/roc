@@ -377,6 +377,7 @@ pub const LIST_MAP: &str = "roc_builtins.list.map";
 pub const LIST_MAP2: &str = "roc_builtins.list.map2";
 pub const LIST_MAP3: &str = "roc_builtins.list.map3";
 pub const LIST_MAP4: &str = "roc_builtins.list.map4";
+pub const LIST_PARALLEL_MAP: &str = "roc_builtins.list.parallel_map";
 pub const LIST_SUBLIST: &str = "roc_builtins.list.sublist";
 pub const LIST_DROP_AT: &str = "roc_builtins.list.drop_at";
 pub const LIST_SWAP: &str = "roc_builtins.list.swap";

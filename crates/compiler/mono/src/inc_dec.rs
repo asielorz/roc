@@ -1124,6 +1124,18 @@ fn insert_refcount_operations_binding<'a>(
                                 panic!("ListMap4 should have 6 arguments");
                             }
                         }
+                        HigherOrder::ListParallelMap { xs } => {
+                            if let [_xs_symbol, _function_symbol, closure_symbol] = &arguments {
+                                let new_stmt = dec_borrowed!([*closure_symbol], stmt);
+                                let new_stmt = decref_lists!(new_stmt, *xs);
+
+                                let new_let = new_let!(new_stmt);
+
+                                inc_owned!([*xs].into_iter(), new_let)
+                            } else {
+                                panic!("ListParallelMap should have 3 arguments");
+                            }
+                        }
                         HigherOrder::ListSortWith { xs } => {
                             // TODO if non-unique, elements have been consumed, must still consume the list itself
                             if let [_xs_symbol, _function_symbol, closure_symbol] = &arguments {
@@ -1307,6 +1319,7 @@ fn lowlevel_borrow_signature(arena: &Bump, op: LowLevel) -> &[Ownership] {
         ListMap2 => arena.alloc_slice_copy(&[owned, owned, function, closure_data]),
         ListMap3 => arena.alloc_slice_copy(&[owned, owned, owned, function, closure_data]),
         ListMap4 => arena.alloc_slice_copy(&[owned, owned, owned, owned, function, closure_data]),
+        ListParallelMap => arena.alloc_slice_copy(&[owned, function, closure_data]),
         ListSortWith => arena.alloc_slice_copy(&[owned, function, closure_data]),
 
         ListAppendUnsafe => arena.alloc_slice_copy(&[owned, owned]),

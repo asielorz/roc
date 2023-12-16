@@ -35,9 +35,9 @@ use crate::llvm::{
     },
     build_list::{
         list_append_unsafe, list_concat, list_drop_at, list_get_unsafe, list_len, list_map,
-        list_map2, list_map3, list_map4, list_prepend, list_release_excess_capacity,
-        list_replace_unsafe, list_reserve, list_sort_with, list_sublist, list_swap,
-        list_symbol_to_c_abi, list_with_capacity, pass_update_mode,
+        list_map2, list_map3, list_map4, list_parallel_map, list_prepend,
+        list_release_excess_capacity, list_replace_unsafe, list_reserve, list_sort_with,
+        list_sublist, list_swap, list_symbol_to_c_abi, list_with_capacity, pass_update_mode,
     },
     compare::{generic_eq, generic_neq},
     convert::{
@@ -1408,7 +1408,7 @@ pub(crate) fn run_low_level<'a, 'ctx>(
             unimplemented!()
         }
 
-        ListMap | ListMap2 | ListMap3 | ListMap4 | ListSortWith => {
+        ListMap | ListMap2 | ListMap3 | ListMap4 | ListParallelMap | ListSortWith => {
             unreachable!("these are higher order, and are handled elsewhere")
         }
 
@@ -3095,6 +3095,46 @@ pub(crate) fn run_higher_order_low_level<'a, 'ctx>(
                         element2_layout,
                         element3_layout,
                         element4_layout,
+                        result_layout,
+                    )
+                }
+                _ => unreachable!("invalid list layout"),
+            }
+        }
+        ListParallelMap { xs } => {
+            // List.parallelMap : List before, (before -> after) -> List after
+            let (list, list_layout) = scope.load_symbol_and_layout(xs);
+
+            let (function, closure, closure_layout) = function_details!();
+
+            match (
+                layout_interner.get_repr(list_layout),
+                layout_interner.get_repr(return_layout),
+            ) {
+                (
+                    LayoutRepr::Builtin(Builtin::List(element_layout)),
+                    LayoutRepr::Builtin(Builtin::List(result_layout)),
+                ) => {
+                    let argument_layouts = &[element_layout];
+
+                    let roc_function_call = roc_function_call(
+                        env,
+                        layout_interner,
+                        layout_ids,
+                        function,
+                        closure,
+                        closure_layout,
+                        function_owns_closure_data,
+                        argument_layouts,
+                        result_layout,
+                    );
+
+                    list_parallel_map(
+                        env,
+                        layout_interner,
+                        roc_function_call,
+                        list,
+                        element_layout,
                         result_layout,
                     )
                 }

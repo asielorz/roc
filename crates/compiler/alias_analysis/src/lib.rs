@@ -1031,6 +1031,30 @@ fn call_spec<'a>(
 
                     add_loop(builder, block, state_type, init_state, loop_body)
                 }
+
+                ListParallelMap { xs } => {
+                    let list = env.symbols[xs];
+
+                    let loop_body = |builder: &mut FuncDefBuilder, block, state| {
+                        let input_bag = builder.add_get_tuple_field(block, list, LIST_BAG_INDEX)?;
+
+                        let element = builder.add_bag_get(block, input_bag)?;
+
+                        let new_element = call_function!(builder, block, [element]);
+
+                        list_append(builder, block, update_mode_var, state, new_element)
+                    };
+
+                    let output_element_type =
+                        layout_spec(env, builder, interner, interner.get_repr(*return_layout))?;
+
+                    let state_layout = LayoutRepr::Builtin(Builtin::List(*return_layout));
+                    let state_type = layout_spec(env, builder, interner, state_layout)?;
+
+                    let init_state = new_list(builder, block, output_element_type)?;
+
+                    add_loop(builder, block, state_type, init_state, loop_body)
+                }
             }
         }
     }

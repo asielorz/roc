@@ -299,7 +299,7 @@ impl<'a> LowLevelCall<'a> {
 
             ListIsUnique => self.load_args_and_call_zig(backend, bitcode::LIST_IS_UNIQUE),
 
-            ListMap | ListMap2 | ListMap3 | ListMap4 | ListSortWith => {
+            ListMap | ListMap2 | ListMap3 | ListMap4 | ListParallelMap | ListSortWith => {
                 internal_error!("HigherOrder lowlevels should not be handled here")
             }
 
@@ -2538,9 +2538,11 @@ pub fn call_higher_order_lowlevel<'a>(
             .unwrap();
         match op {
             ListSortWith { .. } => ProcSource::HigherOrderCompare(passed_proc_index),
-            ListMap { .. } | ListMap2 { .. } | ListMap3 { .. } | ListMap4 { .. } => {
-                ProcSource::HigherOrderMapper(passed_proc_index)
-            }
+            ListMap { .. }
+            | ListMap2 { .. }
+            | ListMap3 { .. }
+            | ListMap4 { .. }
+            | ListParallelMap { .. } => ProcSource::HigherOrderMapper(passed_proc_index),
         }
     };
     let wrapper_sym = backend.create_symbol(&format!("#wrap#{fn_name:?}"));
@@ -2647,6 +2649,19 @@ pub fn call_higher_order_lowlevel<'a>(
             bitcode::LIST_MAP4,
             backend,
             &[*xs, *ys, *zs, *ws],
+            return_sym,
+            *return_layout,
+            wrapper_fn_ptr,
+            inc_fn_ptr,
+            closure_data_exists,
+            wrapped_captured_environment,
+            *owns_captured_environment,
+        ),
+
+        ListParallelMap { xs } => list_map_n(
+            bitcode::LIST_PARALLEL_MAP,
+            backend,
+            &[*xs],
             return_sym,
             *return_layout,
             wrapper_fn_ptr,
