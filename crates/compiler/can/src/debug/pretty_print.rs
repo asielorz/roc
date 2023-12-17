@@ -350,6 +350,24 @@ fn expr<'a>(c: &Ctx, p: EPrec, f: &'a Arena<'a>, e: &'a Expr) -> DocBuilder<'a, 
             .append(f.line())
             .append(f.text(")"))
             .group(),
+        Par { elems, .. } => f
+            .reflow("par (")
+            .append(
+                f.intersperse(
+                    elems.iter().map(|(_var, elem)| {
+                        f.line()
+                            .append(expr(c, Free, f, &elem.value))
+                            .nest(2)
+                            .group()
+                    }),
+                    f.reflow(","),
+                )
+                .nest(2)
+                .group(),
+            )
+            .append(f.line())
+            .append(f.text(")"))
+            .group(),
         EmptyRecord => f.text("{}"),
         RecordAccess {
             loc_expr, field, ..

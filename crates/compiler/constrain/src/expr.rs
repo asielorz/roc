@@ -297,6 +297,51 @@ pub fn constrain_expr(
             let and_constraint = constraints.and_constraint(tuple_constraints);
             constraints.exists(elem_vars, and_constraint)
         }
+        Expr::Par { tuple_var, elems } => {
+            let mut elem_types = VecMap::with_capacity(elems.len());
+            let mut elem_vars = Vec::with_capacity(elems.len());
+
+            // Constraints need capacity for each elem
+            // + 1 for the tuple itself + 1 for tuple var
+            let mut tuple_constraints = Vec::with_capacity(2 + elems.len());
+
+            for (i, (elem_var, loc_expr)) in elems.iter().enumerate() {
+                let elem_type = constraints.push_variable(*elem_var);
+                let elem_expected = constraints.push_expected_type(NoExpectation(elem_type));
+                let elem_con = constrain_expr(
+                    types,
+                    constraints,
+                    env,
+                    loc_expr.region,
+                    &loc_expr.value,
+                    elem_expected,
+                );
+
+                elem_vars.push(*elem_var);
+                elem_types.insert(i, Variable(*elem_var));
+
+                tuple_constraints.push(elem_con);
+            }
+
+            let tuple_type = {
+                let typ = types.from_old_type(&Type::Tuple(elem_types, TypeExtension::Closed));
+                constraints.push_type(types, typ)
+            };
+
+            let tuple_con = constraints.equal_types_with_storage(
+                tuple_type,
+                expected,
+                Category::Tuple,
+                region,
+                *tuple_var,
+            );
+
+            tuple_constraints.push(tuple_con);
+            elem_vars.push(*tuple_var);
+
+            let and_constraint = constraints.and_constraint(tuple_constraints);
+            constraints.exists(elem_vars, and_constraint)
+        }
         RecordUpdate {
             record_var,
             ext_var,
@@ -4103,6 +4148,7 @@ fn is_generalizable_expr(mut expr: &Expr) -> bool {
             | EmptyRecord
             | Expr::Record { .. }
             | Expr::Tuple { .. }
+            | Expr::Par { .. }
             | Crash { .. }
             | RecordAccess { .. }
             | TupleAccess { .. }

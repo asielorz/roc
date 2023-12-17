@@ -501,6 +501,14 @@ fn deep_copy_expr_help<C: CopyEnv>(env: &mut C, copied: &mut Vec<Variable>, expr
                 .collect(),
         },
 
+        Par { tuple_var, elems } => Par {
+            tuple_var: sub!(*tuple_var),
+            elems: elems
+                .iter()
+                .map(|(var, loc_expr)| (sub!(*var), Box::new(loc_expr.map(|e| go_help!(e)))))
+                .collect(),
+        },
+
         RecordAccess {
             record_var,
             ext_var,

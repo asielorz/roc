@@ -105,6 +105,7 @@ impl<'a> Formattable for Expr<'a> {
 
             Record(fields) => is_collection_multiline(fields),
             Tuple(fields) => is_collection_multiline(fields),
+            Par(fields) => is_collection_multiline(fields),
             RecordUpdate { fields, .. } => is_collection_multiline(fields),
             RecordBuilder(fields) => is_collection_multiline(fields),
         }
@@ -446,6 +447,11 @@ impl<'a> Formattable for Expr<'a> {
             }
             When(loc_condition, branches) => fmt_when(buf, loc_condition, branches, indent),
             Tuple(items) => fmt_collection(buf, indent, Braces::Round, *items, Newlines::No),
+            Par(items) => {
+                buf.indent(indent);
+                buf.push_str("par ");
+                fmt_collection(buf, 0, Braces::Round, *items, Newlines::No);
+            }
             List(items) => fmt_collection(buf, indent, Braces::Square, *items, Newlines::No),
             BinOps(lefts, right) => fmt_binops(buf, lefts, right, false, indent),
             UnaryOp(sub_expr, unary_op) => {

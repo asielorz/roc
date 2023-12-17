@@ -271,6 +271,8 @@ pub enum Expr<'a> {
 
     Tuple(Collection<'a, &'a Loc<Expr<'a>>>),
 
+    Par(Collection<'a, &'a Loc<Expr<'a>>>),
+
     // Record Builders
     RecordBuilder(Collection<'a, Loc<RecordBuilderField<'a>>>),
 
@@ -1529,6 +1531,7 @@ impl<'a> Malformed for Expr<'a> {
             RecordUpdate { update, fields } => update.is_malformed() || fields.is_malformed(),
             Record(items) => items.is_malformed(),
             Tuple(items) => items.is_malformed(),
+            Par(items) => items.is_malformed(),
 
             RecordBuilder(items) => items.is_malformed(),
 

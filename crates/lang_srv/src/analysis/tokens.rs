@@ -650,6 +650,7 @@ impl IterTokens for Loc<Expr<'_>> {
                 .collect_in(arena),
             Expr::Record(rcd) => rcd.iter_tokens(arena),
             Expr::Tuple(tup) => tup.iter_tokens(arena),
+            Expr::Par(tup) => tup.iter_tokens(arena),
             Expr::RecordBuilder(rb) => rb.iter_tokens(arena),
             Expr::IngestedFile(_path, ty) => ty.iter_tokens(arena),
             Expr::Var { .. } => onetoken(Token::Variable, region, arena),

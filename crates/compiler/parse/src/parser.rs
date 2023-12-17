@@ -106,6 +106,7 @@ impl_space_problem! {
     ETypeAbilityImpl<'a>,
     EWhen<'a>,
     EAbility<'a>,
+    EPar<'a>,
     PInParens<'a>,
     PRecord<'a>,
     PList<'a>
@@ -347,6 +348,8 @@ pub enum EExpr<'a> {
     Expect(EExpect<'a>, Position),
     Dbg(EExpect<'a>, Position),
 
+    Par(EPar<'a>, Position),
+
     Closure(EClosure<'a>, Position),
     Underscore(Position),
     Crash(Position),
@@ -538,6 +541,15 @@ pub enum EPattern<'a> {
     AsIndentStart(Position),
 
     AccessorFunction(Position),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EPar<'a> {
+    Space(BadInputError, Position),
+    Par(Position),
+    NotATuple(Position),
+    BadTuple(&'a EInParens<'a>, Position),
+    Indent(Position),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -316,6 +316,12 @@ pub fn walk_expr<V: Visitor>(visitor: &mut V, expr: &Expr, var: Variable) {
         } => elems
             .iter()
             .for_each(|(var, elem)| visitor.visit_expr(&elem.value, elem.region, *var)),
+        Expr::Par {
+            tuple_var: _,
+            elems,
+        } => elems
+            .iter()
+            .for_each(|(var, elem)| visitor.visit_expr(&elem.value, elem.region, *var)),
         Expr::EmptyRecord => { /* terminal */ }
         Expr::RecordAccess {
             field_var,

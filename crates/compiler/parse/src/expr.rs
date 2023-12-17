@@ -12,8 +12,8 @@ use crate::keyword;
 use crate::parser::{
     self, backtrackable, increment_min_indent, line_min_indent, optional, reset_min_indent,
     sep_by1, sep_by1_e, set_min_indent, specialize, specialize_ref, then, word1, word1_indent,
-    word2, EClosure, EExpect, EExpr, EIf, EInParens, EList, ENumber, EPattern, ERecord, EString,
-    EType, EWhen, Either, ParseResult, Parser,
+    word2, EClosure, EExpect, EExpr, EIf, EInParens, EList, ENumber, EPar, EPattern, ERecord,
+    EString, EType, EWhen, Either, ParseResult, Parser,
 };
 use crate::pattern::{closure_param, loc_implements_parser};
 use crate::state::State;
@@ -302,6 +302,7 @@ fn expr_start<'a>(options: ExprParseOptions) -> impl Parser<'a, Loc<Expr<'a>>, E
         loc!(specialize(EExpr::When, when::expr_help(options))),
         loc!(specialize(EExpr::Expect, expect_help(options))),
         loc!(specialize(EExpr::Dbg, dbg_help(options))),
+        loc!(specialize(EExpr::Par, par_expr_help())),
         loc!(specialize(EExpr::Closure, closure_help(options))),
         loc!(expr_operator_chain(options)),
         fail_expr_start_e()
@@ -1940,6 +1941,7 @@ fn expr_to_pattern_help<'a>(arena: &'a Bump, expr: &Expr<'a>) -> Result<Pattern<
         | Expr::UnappliedRecordBuilder { .. }
         | Expr::RecordUpdate { .. }
         | Expr::UnaryOp(_, _)
+        | Expr::Par(_)
         | Expr::Crash => return Err(()),
 
         Expr::Str(string) => Pattern::StrLiteral(string),
@@ -2437,6 +2439,32 @@ fn if_expr_help<'a>(options: ExprParseOptions) -> impl Parser<'a, Expr<'a>, EIf<
         let expr = Expr::If(branches.into_bump_slice(), arena.alloc(else_branch));
 
         Ok((MadeProgress, expr, state))
+    }
+}
+
+fn par_expr_help<'a>() -> impl Parser<'a, Expr<'a>, EPar<'a>> {
+    move |arena: &'a Bump, state: State<'a>, min_indent| {
+        let (_, _, state) =
+            parser::keyword_e(keyword::PAR, EPar::Par).parse(arena, state, min_indent)?;
+
+        println!("par keyword parsed");
+
+        let (_, body, state) = space0_before_e(
+            specialize_ref(EPar::BadTuple, loc_expr_in_parens_help()),
+            EPar::Indent,
+        )
+        .parse(arena, state, min_indent)
+        .map_err(|(_, f)| (MadeProgress, f))?;
+
+        println!("good expr");
+
+        let Expr::Tuple(body_exprs) = body.value else {
+            return Err((NoProgress, EPar::NotATuple(state.pos())));
+        };
+
+        println!("good tuple");
+
+        Ok((MadeProgress, Expr::Par(body_exprs), state))
     }
 }
 

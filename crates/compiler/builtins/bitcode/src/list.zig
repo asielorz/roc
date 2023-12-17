@@ -295,18 +295,6 @@ pub fn listMap(
     }
 }
 
-const Params = struct {
-    function_pointer: Caller1,
-    function_object: ?[*]u8,
-    element: ?[*]u8,
-    output: ?[*]u8,
-};
-
-fn runTask(type_erased_params: *anyopaque) callconv(.C) void {
-    const params: *const Params = @alignCast(@ptrCast(type_erased_params));
-    params.function_pointer(params.function_object, params.element, params.output);
-}
-
 pub fn listParallelMap(
     list: RocList,
     caller: Caller1,
@@ -327,16 +315,15 @@ pub fn listParallelMap(
             inc_n_data(data, size);
         }
 
-        var allocator = std.heap.GeneralPurposeAllocator(.{}){};
-        var params = std.ArrayList(Params).init(allocator.allocator());
-        defer params.deinit();
-        params.resize(size) catch unreachable;
-
         var context = parallel.roc_parallel_context_create(size);
 
         while (i < size) : (i += 1) {
-            params.items[i] = Params{ .function_pointer = caller, .function_object = data, .element = source_ptr + (i * old_element_width), .output = target_ptr + (i * new_element_width) };
-            parallel.roc_parallel_context_register_task(context, runTask, &params.items[i]);
+            const task: parallel.TaskFn = @ptrCast(caller);
+            const function_object: *const anyopaque = @ptrCast(data);
+            const param: *const anyopaque = @ptrCast(source_ptr + (i * old_element_width));
+            const return_address: *anyopaque = @ptrCast(target_ptr + (i * new_element_width));
+
+            parallel.roc_parallel_context_register_task(context, task, function_object, param, return_address);
         }
 
         parallel.roc_parallel_context_run(context);

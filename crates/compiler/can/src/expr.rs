@@ -179,6 +179,11 @@ pub enum Expr {
         elems: Vec<(Variable, Box<Loc<Expr>>)>,
     },
 
+    Par {
+        tuple_var: Variable,
+        elems: Vec<(Variable, Box<Loc<Expr>>)>,
+    },
+
     /// The "crash" keyword
     Crash {
         msg: Box<Loc<Expr>>,
@@ -320,6 +325,7 @@ impl Expr {
             Self::ForeignCall { .. } => Category::ForeignCall,
             Self::Closure(..) => Category::Lambda,
             Self::Tuple { .. } => Category::Tuple,
+            Self::Par { .. } => Category::Tuple,
             Self::Record { .. } => Category::Record,
             Self::EmptyRecord => Category::Record,
             Self::RecordAccess { field, .. } => Category::RecordAccess(field.clone()),
@@ -730,6 +736,34 @@ pub fn canonicalize_expr<'a>(
 
             (
                 Tuple {
+                    tuple_var: var_store.fresh(),
+                    elems: can_elems,
+                },
+                output,
+            )
+        }
+
+        ast::Expr::Par(fields) => {
+            let mut can_elems = Vec::with_capacity(fields.len());
+            let mut references = References::new();
+
+            for loc_elem in fields.iter() {
+                let (can_expr, elem_out) =
+                    canonicalize_expr(env, var_store, scope, loc_elem.region, &loc_elem.value);
+
+                references.union_mut(&elem_out.references);
+
+                can_elems.push((var_store.fresh(), Box::new(can_expr)));
+            }
+
+            let output = Output {
+                references,
+                tail_call: None,
+                ..Default::default()
+            };
+
+            (
+                Par {
                     tuple_var: var_store.fresh(),
                     elems: can_elems,
                 },
@@ -2226,6 +2260,14 @@ pub fn inline_calls(var_store: &mut VarStore, expr: Expr) -> Expr {
             );
         }
 
+        Par { tuple_var, elems } => {
+            todo!(
+                "Inlining for Par with tuple_var {:?} and elems {:?}",
+                tuple_var,
+                elems
+            );
+        }
+
         TupleAccess {
             tuple_var,
             ext_var,
@@ -2435,6 +2477,9 @@ pub fn is_valid_interpolation(expr: &ast::Expr<'_>) -> bool {
             ast::AssignedField::SpaceBefore(_, _) | ast::AssignedField::SpaceAfter(_, _) => false,
         }),
         ast::Expr::Tuple(fields) => fields
+            .iter()
+            .all(|loc_field| is_valid_interpolation(&loc_field.value)),
+        ast::Expr::Par(fields) => fields
             .iter()
             .all(|loc_field| is_valid_interpolation(&loc_field.value)),
         ast::Expr::MultipleRecordBuilders(loc_expr)
@@ -3182,6 +3227,9 @@ pub(crate) fn get_lookup_symbols(expr: &Expr) -> Vec<ExpectLookup> {
                 stack.extend(fields.iter().map(|(_, field)| &field.loc_expr.value));
             }
             Expr::Tuple { elems, .. } => {
+                stack.extend(elems.iter().map(|(_, elem)| &elem.value));
+            }
+            Expr::Par { elems, .. } => {
                 stack.extend(elems.iter().map(|(_, elem)| &elem.value));
             }
             Expr::Expect {

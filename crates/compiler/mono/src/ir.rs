@@ -4567,6 +4567,39 @@ pub fn with_hole<'a>(
             )
         }
 
+        Par {
+            tuple_var, elems, ..
+        } => {
+            let sorted_elems_result = {
+                let mut layout_env = layout::Env::from_components(
+                    layout_cache,
+                    env.subs,
+                    env.arena,
+                    env.target_info,
+                );
+                layout::sort_tuple_elems(&mut layout_env, tuple_var)
+            };
+            let sorted_elems = match sorted_elems_result {
+                Ok(elems) => elems,
+                Err(_) => return runtime_error(env, "Can't create tuple with improper layout"),
+            };
+
+            // Hacky way to let us remove the owned elements from the vector, possibly out-of-order.
+            let mut elems = Vec::from_iter_in(elems.into_iter().map(Some), env.arena);
+            let take_elem_expr = move |index: usize| elems[index].take();
+
+            compile_struct_like(
+                env,
+                procs,
+                layout_cache,
+                sorted_elems,
+                take_elem_expr,
+                tuple_var,
+                hole,
+                assigned,
+            )
+        }
+
         Record {
             record_var,
             mut fields,

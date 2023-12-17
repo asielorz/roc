@@ -279,6 +279,18 @@ pub fn desugar_expr<'a>(
                 value: Tuple(fields),
             })
         }
+        Par(fields) => {
+            let mut allocated = Vec::with_capacity_in(fields.len(), arena);
+            for field in fields.iter() {
+                let expr = desugar_expr(arena, field, src, line_info, module_path);
+                allocated.push(expr);
+            }
+            let fields = fields.replace_items(allocated.into_bump_slice());
+            arena.alloc(Loc {
+                region: loc_expr.region,
+                value: Par(fields),
+            })
+        }
         RecordUpdate { fields, update } => {
             // NOTE the `update` field is always a `Var { .. }`, we only desugar it to get rid of
             // any spaces before/after
