@@ -119,8 +119,8 @@ The keyword is not fully implemented in my GitHub fork. The parser will accept i
 
 ## Links to the code
 
-Modified compiler: https://github.com/asielorz/roc
-Modified basic-cli platform: https://github.com/asielorz/roc-basic-cli
+- Modified compiler: https://github.com/asielorz/roc
+- Modified basic-cli platform: https://github.com/asielorz/roc-basic-cli
 
 ## Future work
 
